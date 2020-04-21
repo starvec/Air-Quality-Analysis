@@ -85,6 +85,7 @@ public class Interface {
 		frmMercedCollege.setTitle("Merced College - Air Quality Monitor");
 		frmMercedCollege.setIconImage(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo.png")));
 		frmMercedCollege.setBounds(100, 100, 1280, 720);
+		frmMercedCollege.setLocationRelativeTo(null);
 		frmMercedCollege.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		springLayout = new SpringLayout();
 		frmMercedCollege.getContentPane().setLayout(springLayout);
@@ -125,7 +126,7 @@ public class Interface {
 						try 
 						{
 							UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-							InterfaceAddSensor window = new InterfaceAddSensor(sensors, sensorDisplayNames, dbConnection);
+							InterfaceAddSensor window = new InterfaceAddSensor(sensors, sensorDisplayNames, dbConnection, frmMercedCollege);
 						} catch (Exception e) {
 							e.printStackTrace();
 						}

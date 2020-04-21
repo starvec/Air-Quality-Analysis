@@ -1,5 +1,6 @@
 package net.starvec;
 
+import java.awt.Color;
 import java.awt.EventQueue;
 
 import javax.swing.JFrame;
@@ -23,6 +24,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class InterfaceMainInitilizationFirstTime 
@@ -32,6 +35,7 @@ public class InterfaceMainInitilizationFirstTime
 	
 	private Connection dbConnection;
 	private String text;
+	private boolean finished;
 
 	/**
 	 * Launch the application.
@@ -40,8 +44,7 @@ public class InterfaceMainInitilizationFirstTime
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					InterfaceMainInitilizationFirstTime window = new InterfaceMainInitilizationFirstTime(DBAction.openDatabaseConnection("PurpleAir.db"), 
-																											"Performing first-time initilization");
+					InterfaceMainInitilizationFirstTime window = new InterfaceMainInitilizationFirstTime(DBAction.openDatabaseConnection("data.db"), "Performing first-time initilization");
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -56,6 +59,7 @@ public class InterfaceMainInitilizationFirstTime
 	{
 		this.dbConnection = dbConnection;
 		this.text = text;
+		finished = false;
 		
 		initialize();
 		frame.setVisible(true);
@@ -64,7 +68,6 @@ public class InterfaceMainInitilizationFirstTime
 		
 		worker.addPropertyChangeListener(new PropertyChangeListener()
 		{
-			@SuppressWarnings("serial")
 			@Override
             public void propertyChange(PropertyChangeEvent evt) 
             {
@@ -77,10 +80,15 @@ public class InterfaceMainInitilizationFirstTime
                 else if (name.equals("state")) 
                 {
                     SwingWorker.StateValue state = (SwingWorker.StateValue) evt.getNewValue();
-                    switch (state) {
+                    switch (state) 
+                    {
                         case DONE:
-
-                            break;
+                        {
+                        	finished = true;
+                        	frame.setVisible(false);
+                        	frame.dispose();
+                        	break;
+                        }              
                     }
                 }
             }
@@ -88,6 +96,10 @@ public class InterfaceMainInitilizationFirstTime
         });
 		
         worker.execute();
+	}
+	
+	public boolean finished() {
+		return finished;
 	}
 
 	/**
@@ -107,11 +119,13 @@ public class InterfaceMainInitilizationFirstTime
 			e.printStackTrace();
 		}
 		
+		UIManager.put("ProgressBar.selectionForeground", Color.white);
+		UIManager.put("ProgressBar.selectionBackground", Color.black);
+		
 		frame = new JFrame();
 		frame.setUndecorated(true);
 		frame.setBounds(100, 100, 300, 50);
 		frame.setLocationRelativeTo(null);
-		//frame.setBounds(100, 100, 300, 100);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		SpringLayout springLayout = new SpringLayout();
 		frame.getContentPane().setLayout(springLayout);
@@ -126,6 +140,7 @@ public class InterfaceMainInitilizationFirstTime
 		
 		progressBar = new JProgressBar();
 		progressBar.setStringPainted(true);
+		progressBar.setForeground(new Color(51, 187, 76));
 		springLayout.putConstraint(SpringLayout.NORTH, progressBar, 4, SpringLayout.SOUTH, lbl);
 		springLayout.putConstraint(SpringLayout.WEST, progressBar, 4, SpringLayout.WEST, frame.getContentPane());
 		springLayout.putConstraint(SpringLayout.SOUTH, progressBar, -4, SpringLayout.SOUTH, frame.getContentPane());
@@ -135,7 +150,6 @@ public class InterfaceMainInitilizationFirstTime
 	
 	class ProgressWorker extends SwingWorker<Object, Object>
 	{
-		
 		private int sensorListDownloadCompletedProgressValue = 25;
 		private int airportListDownloadCompletedProgressValue = 75;
 		private int	sensorListParseCompletedProgressValue = 50;
@@ -149,14 +163,18 @@ public class InterfaceMainInitilizationFirstTime
 			
 			progressBar.setString("Downloading Airport List");
 			handleAirport();
-	
+			
+			DBAction.executeUpdate(dbConnection, "UPDATE config SET c_value = 1 WHERE c_property = 'run_before';");
 	    	return null;
 	    }
 	    
+	    // downloads a list of all PurpleAir sensors, parses through it, and adds them to the database
 	    private void handleSensor()
-	    {			
+	    {	    	
 			try 
 			{
+				DBAction.executeUpdate(dbConnection, "DELETE FROM sensor_master WHERE 1;");
+				
 				String sensorListRaw = IOUtils.toString(new URL("https://www.purpleair.com/json?show="), Charset.forName("UTF-8"));
 				
 				progressBar.setValue(sensorListDownloadCompletedProgressValue);
@@ -167,12 +185,10 @@ public class InterfaceMainInitilizationFirstTime
 				//7965736
 				
 				int packedStatements = 0;
-				String insertionStatement = "BEGIN;\n";
+				String insertionStatement = "";
 				
 				for (int i = 0; i < sensorListRaw.length() - 5; i++)
-				{	
-					int iStart = i;
-					
+				{		
 					// scan until we find "ID":
 					if (sensorListRaw.charAt(i) == '\"' && sensorListRaw.charAt(i+1) == 'I' && sensorListRaw.charAt(i+2) == 'D' 
 						&& sensorListRaw.charAt(i+3) == '\"' && sensorListRaw.charAt(i+4) == ':')
@@ -271,7 +287,7 @@ public class InterfaceMainInitilizationFirstTime
 						// parse longitude
 						longitude = Float.parseFloat(sensorListRaw.substring(iLonStart, iLonEnd));
 						
-						i += 30;
+						i += 10;
 						int startingIndex = i;
 						// scan for "Type":
 						while (!(sensorListRaw.charAt(i) == '\"' && sensorListRaw.charAt(i+1) == 'T' && sensorListRaw.charAt(i+2) == 'y' 
@@ -331,28 +347,27 @@ public class InterfaceMainInitilizationFirstTime
 															latitude + ", " + 
 															longitude + ", " + 
 															"\"" + locationType + "\");\n";
-						}
-						
-						//System.out.println(insertionStatement);					
+						}				
 					}
-
+					
+					// send the multi-line insertion statment to the database, then resets the string to accept more statements
+					if (packedStatements >= 1000)
+					{
+						DBAction.executeUpdateAsTransaction(dbConnection, insertionStatement);
+						insertionStatement = "";
+						packedStatements = 0;
+					}
+					
 					// update the progress bar as we go
 					if (i%100 == 0)
 						progressBar.setValue((int) (sensorListDownloadCompletedProgressValue + (i/(float)sensorListRaw.length())*(sensorListParseCompletedProgressValue - sensorListDownloadCompletedProgressValue)));
-					
-					if (packedStatements >= 1000)
-					{
-						DBAction.executeUpdate(dbConnection, insertionStatement + "END;");
-						insertionStatement = "BEGIN;\n";
-						packedStatements = 0;
-					}
 				
-				//System.out.println(i);
 				} // end for loop
 				
+				// if there are any insertion statements left, send them to the database
 				if (packedStatements > 0)
 				{
-					DBAction.executeUpdate(dbConnection, insertionStatement + "END;");
+					DBAction.executeUpdateAsTransaction(dbConnection, insertionStatement);
 				}
 				
 			} 
@@ -363,10 +378,13 @@ public class InterfaceMainInitilizationFirstTime
 			progressBar.setValue(sensorListParseCompletedProgressValue);
 	    }
 	    
+	    // downloads a list of all airports, finds ones that should have weather stations, and adds them to the database
 	    private void handleAirport()
 	    {
 			try 
 			{	
+				DBAction.executeUpdate(dbConnection, "DELETE FROM airport_master WHERE 1;");
+				
 				URL urlCSV = new URL("https://ourairports.com/data/airports.csv");
 				
 				URLConnection urlConn = urlCSV.openConnection();
@@ -379,49 +397,72 @@ public class InterfaceMainInitilizationFirstTime
 				progressBar.setString("Parsing Airport List");
 				
 				String airport;
+				String insertionStatement = "";
 				int count = 0;
-
+				int packedStatements = 0;
+				
 				while ((airport = br.readLine()) != null)
 				{
 					//airport = airport.replaceAll("^\"|\"$", "");
-					String[] fields = airport.replaceAll("\"", "").split(",");
+					//String[] fields = airport.replaceAll("\"", "").split(",");
+					String[] fields = new String[100];
+					int currentField = 0;
+					boolean betweenQuotes = false;
+					int start = 0;
 					
-					if (fields[2].equalsIgnoreCase("medium_airport") || fields[2].equalsIgnoreCase("large_airport"))
+					for (int i = 0; i < airport.length(); i++)
 					{
-						System.out.println(Arrays.toString(fields));
-						count++;
+						if (airport.charAt(i) == ',' && !betweenQuotes)
+						{
+							fields[currentField] = airport.substring(start, i).replaceAll("\"", "");
+							currentField++;
+							start = i + 1;
+						}
+						else if (airport.charAt(i) == '\"')
+						{
+							betweenQuotes = !betweenQuotes;
+						}
 					}
 					
+					// medium and large airports are the ones expected to have a weather station
+					if (fields[2].equalsIgnoreCase("medium_airport") || fields[2].equalsIgnoreCase("large_airport"))
+					{
+						insertionStatement += "INSERT INTO airport_master " +
+												"VALUES (" +
+													"\"" + fields[1] + "\", " +
+													"\"" + fields[3] + "\", " +
+													fields[4] + ", " + 
+													fields[5] + ", " +
+													"\"" + fields[10] + "\");\n";
+						count++;
+						packedStatements++;
+						
+						//System.out.println(Arrays.toString(fields));
+					}
+					
+					// send the multi-line insertion statment to the database, then resets the string to accept more statements
+					if (packedStatements >= 1000)
+					{
+						DBAction.executeUpdateAsTransaction(dbConnection, insertionStatement);
+						insertionStatement = "";
+						packedStatements = 0;
+					}
+					
+					// update the progress bar as we go
 					if (count%100 == 0)
 						progressBar.setValue((int) (airportListDownloadCompletedProgressValue + (count/6000f)*(airportListParseCompletedProgressValue - airportListDownloadCompletedProgressValue)));
 				}
 				
+				// if there are any insertion statements left, send them to the database
+				if (packedStatements > 0)
+					DBAction.executeUpdateAsTransaction(dbConnection, insertionStatement);
+				
 				progressBar.setValue(100);
-				
-				//String airportListRaw = IOUtils.toString(new URL("https://ourairports.com/data/airports.csv"), Charset.forName("UTF-8"));
-				
-				
-				
-				/*
-				
-				String[] airports = airportListRaw.split("\n");
-				System.out.println(Arrays.toString(airports));
-				
-				for (int i = 1; i < airports.length; i++)
-				{
-					String[] fields = airports[i].split(",");
-					
-					if (fields[2].equalsIgnoreCase("medium_airport") || fields[2].equalsIgnoreCase("large_airport"))
-					{
-						System.out.println(Arrays.toString(fields));
-					}
-				}
-				*/
+				progressBar.setString("Done");
 			} 
 			catch (IOException e) {
 				e.printStackTrace();
-			}
-			
+			}	
 	    }
 	}
 }

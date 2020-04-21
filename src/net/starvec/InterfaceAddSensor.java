@@ -15,6 +15,7 @@ import javax.swing.JScrollPane;
 import javax.swing.AbstractListModel;
 import javax.swing.JButton;
 import java.awt.Color;
+import java.awt.Component;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -49,6 +50,7 @@ public class InterfaceAddSensor
 	private static ArrayList<String> sensorDisplayNames;
 	
 	private static Connection dbConnection;
+	private static Component parentComponent;
 
 	/**
 	 * Launch the application.
@@ -61,7 +63,7 @@ public class InterfaceAddSensor
 			public void run() {
 				try {
 					UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-					InterfaceAddSensor window = new InterfaceAddSensor(sensors, sensorDisplayNames, dbConnection);
+					InterfaceAddSensor window = new InterfaceAddSensor(sensors, sensorDisplayNames, dbConnection, null);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -72,8 +74,9 @@ public class InterfaceAddSensor
 	/**
 	 * Create the application.
 	 */
-	public InterfaceAddSensor(ArrayList<PurpleAir> sensors, ArrayList<String> sensorDisplayNames, Connection dbConnection) {
+	public InterfaceAddSensor(ArrayList<PurpleAir> sensors, ArrayList<String> sensorDisplayNames, Connection dbConnection, Component parentComponent) {
 		this.dbConnection = dbConnection;
+		this.parentComponent = parentComponent;
 		this.sensors = sensors;
 		this.sensorDisplayNames = sensorDisplayNames;
 		initialize();
@@ -93,6 +96,7 @@ public class InterfaceAddSensor
 		frame.setTitle("Add Sensor");
 		frame.setResizable(false);
 		frame.setBounds(100, 100, 256, 360);
+		frame.setLocationRelativeTo(parentComponent);
 		SpringLayout springLayout = new SpringLayout();
 		frame.getContentPane().setLayout(springLayout);
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);

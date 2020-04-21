@@ -86,5 +86,77 @@ public class DBAction
 			System.err.println(e.getMessage());
 			System.err.println("Error on -> " + queryStr);
 		}
+	}
+	
+	public static void executeUpdateAsTransaction(Connection connection, String queryStr)
+	{
+		try
+		{
+			Statement statement = connection.createStatement();
+			statement.setQueryTimeout(10);  // set timeout to 10 sec.
+			connection.setAutoCommit(false);
+			statement.executeUpdate(queryStr);
+			connection.commit();
+			connection.setAutoCommit(true);
+		}
+		catch(SQLException e)
+		{
+			try {
+				connection.rollback();
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			System.err.println(e.getMessage());
+			System.err.println("Error on -> " + queryStr);
+		}
+		
+		
+	}	
+	
+	public static void executeUpdateUnprotected(Connection connection, String queryStr) throws SQLException
+	{
+		Statement statement = connection.createStatement();
+		statement.setQueryTimeout(10);  // set timeout to 10 sec.
+		statement.executeUpdate(queryStr);
+	}
+	
+	public static void executeUpdateRetry(Connection connection, int waitTime, int timeOutTime, String queryStr)
+	{
+		boolean tryAgain = true;
+		int timeLeft = timeOutTime;
+		int timesTried = 0;
+		
+		while(tryAgain)
+		{
+			try
+			{
+				Statement statement = connection.createStatement();
+				statement.setQueryTimeout(10);  // set timeout to 10 sec.
+				statement.executeUpdate(queryStr);
+				tryAgain = false;
+			}
+			catch(SQLException e)
+			{	
+				if (timeLeft > 0)
+				{
+					try {
+						Thread.sleep(Math.min(waitTime, timeLeft));
+					} catch (InterruptedException se) {
+						se.printStackTrace();
+					}
+					
+					timeLeft -= waitTime;
+					timesTried++;
+				}
+				else
+				{
+					System.err.println(e.getMessage());
+					System.err.println("Error on -> " + queryStr);
+					System.err.println("Update tried " + timesTried + " times over " + timeOutTime + " milliseconds but timed out");
+					tryAgain = false;
+				}
+			}
+		}	
 	}	
 }

@@ -20,13 +20,30 @@ public class Main
 	
 	static ArrayList<PurpleAir> sensors = new ArrayList<>();
 	static ArrayList<String> sensorDisplayNames = new ArrayList<>();
+	static Config config;
 	
 	static Connection dbConnection;
 	
 	public static void main(String[] args)
-	{	
+	{		
 		// create the database connection
-		dbConnection = DBAction.openDatabaseConnection("PurpleAir.db");
+		dbConnection = DBAction.openDatabaseConnection("data.db");
+		
+		config = new Config(dbConnection);
+		
+		
+		
+		if (config.valueIs("run_before", "1"))
+		{
+			System.out.println("Program has been run before");
+		}
+		else
+		{
+			InterfaceMainInitilizationFirstTime window = new InterfaceMainInitilizationFirstTime(dbConnection, "Performing first-time initilization");
+			while (!window.finished()) {
+				sleep(100);
+			}
+		}	
 		
 		// query the database to get all previously monitored sensors
 		ResultSet result = DBAction.executeQuery(dbConnection, 
@@ -52,8 +69,10 @@ public class Main
 			System.err.println(sqle.getMessage());
 		}
 		
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
+		EventQueue.invokeLater(new Runnable() 
+		{
+			public void run() 
+			{
 				try 
 				{
 					UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
