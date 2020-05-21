@@ -26,7 +26,7 @@ public class PurpleAir
 	private long lastUpdateCheck;
 	private int rssi;
 	
-	private Sensor sensorA, sensorB;
+	private AirSensor sensorA, sensorB;
 
 	public PurpleAir(int id)
 	{	
@@ -52,8 +52,8 @@ public class PurpleAir
 		
 		tertiarySensorType = getSensorType(rawJSONString, null);
 		
-		sensorA = new Sensor(sensorAId, sensorALabel, sensorAType);
-		sensorB = new Sensor(sensorBId, sensorBLabel, sensorBType);
+		sensorA = new AirSensor(sensorAId, sensorALabel, sensorAType);
+		sensorB = new AirSensor(sensorBId, sensorBLabel, sensorBType);
 		
 		refreshSensorData();
 	}

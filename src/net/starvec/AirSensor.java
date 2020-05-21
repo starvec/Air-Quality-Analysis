@@ -1,6 +1,6 @@
 package net.starvec;
 
-public class Sensor 
+public class AirSensor 
 {
 	private int id; 				// id of the air quality sensor
 	private String label;			// label of the air quality sensor
@@ -19,7 +19,7 @@ public class Sensor
 	private long lastReadingAge;	// age of the latest reading in minutes
 	private long lastReadingTime;	// UTC time of the last reading that was taken
 	
-	public Sensor(int id, String label, String sensorType)
+	public AirSensor(int id, String label, String sensorType)
 	{
 		this.id = id;
 		this.label = label;
