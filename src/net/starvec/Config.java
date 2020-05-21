@@ -10,6 +10,7 @@ public class Config
 	private Connection dbConnection;
 	private ArrayList<ConfigField> config = new ArrayList<>();
 	
+	// constructor for config takes the database connection and initializes the object with properties and values from the database
 	public Config(Connection dbConnection) 
 	{
 		this.dbConnection = dbConnection;
@@ -31,10 +32,12 @@ public class Config
 		}
 	}
 	
+	// adds a new property and value to the config
 	private void addProperty(String property, String value) {
 		config.add(new ConfigField(property, value));
 	}
 	
+	// updates the value of a specified property in the config
 	public boolean updateValue(String property, String value)
 	{
 		for (int i = 0; i < config.size(); i++)
@@ -51,6 +54,7 @@ public class Config
 		return false;
 	}
 	
+	// gets the value of a specified property from the config
 	public String getValue(String property)
 	{
 		for (int i = 0; i < config.size(); i++)
@@ -65,11 +69,13 @@ public class Config
 		return null;
 	}
 	
+	// returns true if the specified property has the specified value and false otherwise
 	public boolean valueIs(String property, String value) {		
 		return getValue(property).equals(value);
 	}
 }
 
+// helper class for config
 class ConfigField
 {
 	public String property, value;
