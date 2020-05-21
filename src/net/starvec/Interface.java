@@ -6,6 +6,7 @@ import java.awt.EventQueue;
 import javax.swing.JFrame;
 import javax.swing.SpringLayout;
 import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.JScrollPane;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
@@ -15,9 +16,12 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.List;
 import java.awt.event.ActionEvent;
 import javax.swing.JList;
 import java.awt.Font;
+import java.awt.Image;
+
 import javax.swing.AbstractListModel;
 import javax.swing.JPanel;
 import javax.swing.ScrollPaneConstants;
@@ -55,7 +59,6 @@ public class Interface {
 			public void run() 
 			{
 				try {
-					UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 					Interface window = new Interface(dbConnection, sensors, sensorDisplayNames);
 				} 
 				catch (Exception e) {
@@ -77,13 +80,30 @@ public class Interface {
 		frmMercedCollege.setVisible(true);
 	}
 
-	/**
-	 * Initialize the contents of the frame.
-	 */
-	private void initialize(ArrayList<PurpleAir> sensors, ArrayList<String> sensorDisplayNames) {
+	private void initialize(ArrayList<PurpleAir> sensors, ArrayList<String> sensorDisplayNames) 
+	{
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+				| UnsupportedLookAndFeelException e1) {
+			e1.printStackTrace();
+		}
+		
+		List<Image> icons = new ArrayList<Image>();
+		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo16.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo20.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo24.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo32.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo40.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo48.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo60.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo64.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo72.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo128.png")));
+		
 		frmMercedCollege = new JFrame();
 		frmMercedCollege.setTitle("Merced College - Air Quality Monitor");
-		frmMercedCollege.setIconImage(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo.png")));
+		frmMercedCollege.setIconImages(icons);
 		frmMercedCollege.setBounds(100, 100, 1280, 720);
 		frmMercedCollege.setLocationRelativeTo(null);
 		frmMercedCollege.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
