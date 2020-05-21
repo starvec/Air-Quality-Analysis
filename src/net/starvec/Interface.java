@@ -1,6 +1,5 @@
 package net.starvec;
 
-import java.awt.Color;
 import java.awt.EventQueue;
 
 import javax.swing.JFrame;
@@ -19,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.awt.event.ActionEvent;
 import javax.swing.JList;
-import java.awt.Font;
 import java.awt.Image;
 
 import javax.swing.AbstractListModel;

@@ -29,53 +29,34 @@ public class Main
 		// create the database connection
 		dbConnection = DBAction.openDatabaseConnection("data.db");
 		
-		config = new Config(dbConnection);
+		// create the config object and connect it to the database
+		config = new Config(dbConnection);	
 		
-		
-		
-		if (config.valueIs("run_before", "1"))
-		{
-			System.out.println("Program has been run before");
-		}
-		else
+		// if the application has not been run before, run first time initialization
+		if (!config.valueIs("run_before", "1"))
 		{
 			InterfaceMainInitilizationFirstTime window = new InterfaceMainInitilizationFirstTime(dbConnection, "Performing first-time initilization");
 			while (!window.finished()) {
 				sleep(100);
 			}
-		}	
-		
-		// query the database to get all previously monitored sensors
-		ResultSet result = DBAction.executeQuery(dbConnection, 
-				"SELECT s.s_primary_sensor_id AS id, s.s_sensor_name AS name, s.s_sensor_name_friendly AS name_friendly " +
-				"FROM sensor s;"
-				);
-		try
+		}
+		// else, run standard initialization
+		else
 		{
-			while(result.next())
-			{				
-				sensors.add(new PurpleAir(result.getInt("id")));
-				
-				if (result.getString("name_friendly") == null)
-					sensorDisplayNames.add(result.getString("name"));
-				else
-					sensorDisplayNames.add(result.getString("name_friendly"));
-				
-				sleep(MIN_TIME_BETWEEN_REFRESH);
+			InterfaceMainInitialization window = new InterfaceMainInitialization(sensors, sensorDisplayNames, dbConnection);
+			while (!window.finished()) {
+				sleep(100);
 			}
-		}
-		catch(SQLException sqle)
-		{
-			System.err.println(sqle.getMessage());
-		}
-		
+			System.out.println("Program has been run before");
+		}	
+			
+		// run the main interface
 		EventQueue.invokeLater(new Runnable() 
 		{
 			public void run() 
 			{
 				try 
 				{
-					UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 					Interface window = new Interface(dbConnection, sensors, sensorDisplayNames);
 				} catch (Exception e) {
 					e.printStackTrace();

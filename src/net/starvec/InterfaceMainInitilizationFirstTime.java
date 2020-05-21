@@ -26,9 +26,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class InterfaceMainInitilizationFirstTime 
@@ -40,9 +38,7 @@ public class InterfaceMainInitilizationFirstTime
 	private String text;
 	private boolean finished;
 
-	/**
-	 * Launch the application.
-	 */
+	//
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
@@ -55,9 +51,7 @@ public class InterfaceMainInitilizationFirstTime
 		});
 	}
 
-	/**
-	 * Create the application.
-	 */
+	//
 	public InterfaceMainInitilizationFirstTime(Connection dbConnection, String text) 
 	{
 		this.dbConnection = dbConnection;
@@ -101,13 +95,12 @@ public class InterfaceMainInitilizationFirstTime
         worker.execute();
 	}
 	
+	// returns true if the ProgressWorker has finished
 	public boolean finished() {
 		return finished;
 	}
 
-	/**
-	 * Initialize the contents of the frame.
-	 */
+	//
 	private void initialize() 
 	{
 		try {

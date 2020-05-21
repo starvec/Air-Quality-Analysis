@@ -6,11 +6,8 @@ import java.awt.Toolkit;
 
 import javax.swing.JFrame;
 import javax.swing.SpringLayout;
-import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
-
-import org.apache.commons.io.IOUtils;
 
 import javax.swing.JTextField;
 import javax.swing.JLabel;
@@ -19,9 +16,6 @@ import javax.swing.AbstractListModel;
 import javax.swing.JButton;
 import java.awt.Color;
 import java.awt.Component;
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -35,10 +29,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-
-import javax.swing.JProgressBar;
 
 public class InterfaceAddSensor 
 {
@@ -59,13 +49,16 @@ public class InterfaceAddSensor
 	/**
 	 * Launch the application.
 	 */
-	public static void main(String[] args) 
+	public static void main(String[] args)
 	{
 		Connection dbConnection = DBAction.openDatabaseConnection("data.db");
 
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
-				try {
+				try 
+				{
+					sensors = new ArrayList<>();
+					sensorDisplayNames = new ArrayList<>();
 					InterfaceAddSensor window = new InterfaceAddSensor(sensors, sensorDisplayNames, dbConnection, null);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -77,13 +70,15 @@ public class InterfaceAddSensor
 	/**
 	 * Create the application.
 	 */
-	public InterfaceAddSensor(ArrayList<PurpleAir> sensors, ArrayList<String> sensorDisplayNames, Connection dbConnection, Component parentComponent) {
+	public InterfaceAddSensor(ArrayList<PurpleAir> sensors, ArrayList<String> sensorDisplayNames, Connection dbConnection, Component parentComponent) 
+	{
 		this.dbConnection = dbConnection;
 		this.parentComponent = parentComponent;
 		this.sensors = sensors;
 		this.sensorDisplayNames = sensorDisplayNames;
+		
 		initialize();
-
+		frame.setVisible(true);
 	}
 
 	/**
@@ -123,7 +118,6 @@ public class InterfaceAddSensor
 		SpringLayout springLayout = new SpringLayout();
 		frame.getContentPane().setLayout(springLayout);
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		frame.setVisible(true);
 
 		// sensor id label
 		JLabel lblSensorID = new JLabel("Sensor ID");
@@ -256,6 +250,8 @@ public class InterfaceAddSensor
 			sensorDisplayNames.add(textFieldSensorName.getText());
 			handleNewSensor(sensorIndex, textFieldSensorName.getText());
 		}
+		
+		frame.dispose();
 	}
 
 	// handles when the search button is pressed

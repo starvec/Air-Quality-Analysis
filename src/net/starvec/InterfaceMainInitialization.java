@@ -4,9 +4,12 @@ import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Image;
-import java.awt.SystemTray;
 import java.awt.Toolkit;
-import java.awt.TrayIcon;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,23 +18,31 @@ import javax.swing.JLabel;
 import javax.swing.JProgressBar;
 import javax.swing.SpringLayout;
 import javax.swing.SwingConstants;
+import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
-public class InterfaceMainInitialization {
-
-	private JFrame frame;
+public class InterfaceMainInitialization 
+{
+	private static final int MIN_TIME_BETWEEN_REFRESH = 1000;
 	
+	private JFrame frame;
 	private JProgressBar progressBar;
+	
+	private static ArrayList<PurpleAir> sensors;
+	private static ArrayList<String> sensorDisplayNames;
+	private Connection dbConnection;
+	private boolean finished;
 
-	/**
-	 * Launch the application.
-	 */
+	//
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
-				try {
-					InterfaceMainInitialization window = new InterfaceMainInitialization();
+				try 
+				{
+					sensors = new ArrayList<>();
+					sensorDisplayNames = new ArrayList<>();
+					InterfaceMainInitialization window = new InterfaceMainInitialization(sensors, sensorDisplayNames, DBAction.openDatabaseConnection("data.db"));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -39,18 +50,57 @@ public class InterfaceMainInitialization {
 		});
 	}
 
-	/**
-	 * Create the application.
-	 */
-	public InterfaceMainInitialization() 
+	//
+	public InterfaceMainInitialization(ArrayList<PurpleAir> sensors, ArrayList<String> sensorDisplayNames, Connection dbConnection) 
 	{
+		this.sensors = sensors;
+		this.sensorDisplayNames = sensorDisplayNames;
+		this.dbConnection = dbConnection;
+		finished = false;
+		
 		initialize();
 		frame.setVisible(true);
+		
+		ProgressWorker worker = new ProgressWorker();
+		
+		worker.addPropertyChangeListener(new PropertyChangeListener()
+		{
+			@Override
+            public void propertyChange(PropertyChangeEvent evt) 
+            {
+                String name = evt.getPropertyName();
+                if (name.equals("progress")) 
+                {
+                    int progress = (int) evt.getNewValue();
+                    progressBar.setValue(progress);
+                } 
+                else if (name.equals("state")) 
+                {
+                    SwingWorker.StateValue state = (SwingWorker.StateValue) evt.getNewValue();
+                    switch (state) 
+                    {
+                        case DONE:
+                        {
+                        	finished = true;
+                        	frame.setVisible(false);
+                        	frame.dispose();
+                        	break;
+                        }              
+                    }
+                }
+            }
+
+        });
+		
+        worker.execute();
 	}
 
-	/**
-	 * Initialize the contents of the frame.
-	 */
+	//
+	public boolean finished() {
+		return finished;
+	}
+
+	//
 	private void initialize() 
 	{
 		try {
@@ -59,8 +109,7 @@ public class InterfaceMainInitialization {
 				| UnsupportedLookAndFeelException e) {
 			e.printStackTrace();
 		}
-
-		
+	
 		UIManager.put("ProgressBar.selectionForeground", Color.white);
 		UIManager.put("ProgressBar.selectionBackground", Color.black);
 
@@ -85,7 +134,7 @@ public class InterfaceMainInitialization {
 		SpringLayout springLayout = new SpringLayout();
 		frame.getContentPane().setLayout(springLayout);	
 		
-		JLabel lbl = new JLabel("Initializing");
+		JLabel lbl = new JLabel("Performing initialization");
 		lbl.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		lbl.setHorizontalAlignment(SwingConstants.CENTER);
 		springLayout.putConstraint(SpringLayout.NORTH, lbl, 4, SpringLayout.NORTH, frame.getContentPane());
@@ -103,4 +152,81 @@ public class InterfaceMainInitialization {
 		frame.getContentPane().add(progressBar);
 	}
 
+	//
+	class ProgressWorker extends SwingWorker<Object, Object>
+	{	
+	    @Override
+	    protected Object doInBackground() throws Exception 
+	    {
+	    	int sensorCount = 0;
+	    	int currentSensor = 0;
+	    	
+	    	progressBar.setString("Querying Database");
+	    	
+	    	// query the database to count the number of previously monitored sensors
+			ResultSet result = DBAction.executeQuery(dbConnection, 
+					"SELECT COUNT(s.s_primary_sensor_id) AS count " +
+					"FROM sensor s;"
+					);
+			try
+			{
+				if (result.next())
+				{
+					sensorCount = result.getInt("count");
+				}
+			}
+			catch(SQLException sqle)
+			{
+				System.err.println(sqle.getMessage());
+			}
+	    	
+	    	// query the database to get all previously monitored sensors
+			result = DBAction.executeQuery(dbConnection, 
+					"SELECT s.s_primary_sensor_id AS id, s.s_sensor_name AS name, s.s_sensor_name_friendly AS name_friendly " +
+					"FROM sensor s " +
+					"ORDER BY s.s_sensor_name_friendly;"
+					);
+			try
+			{
+				while(result.next())
+				{
+					sensors.add(new PurpleAir(result.getInt("id")));
+					
+					if (result.getString("name_friendly") == null)
+					{
+						progressBar.setString("Initializing " + result.getString("name"));
+						sensorDisplayNames.add(result.getString("name"));
+					}
+					else
+					{
+						progressBar.setString("Initializing " + result.getString("name_friendly"));
+						sensorDisplayNames.add(result.getString("name_friendly"));
+					}	
+					
+					progressBar.setValue((int)((float)100/(sensorCount) * currentSensor));
+					currentSensor++;
+					
+					sleep(MIN_TIME_BETWEEN_REFRESH);
+				}
+			}
+			catch(SQLException sqle)
+			{
+				System.err.println(sqle.getMessage());
+			}
+			
+			progressBar.setString("Done");
+			progressBar.setValue(100);
+			
+	    	return null;
+	    }
+	    
+	    private void sleep(int millis)
+		{
+			try {
+				Thread.sleep(millis);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 }
