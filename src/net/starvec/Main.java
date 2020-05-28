@@ -36,18 +36,22 @@ public class Main
 		// if the application has not been run before, run first time initialization
 		if (!config.valueIs("run_before", "1"))
 		{
+			System.out.println("Program has not been run before, performing first-time intialization");
 			InterfaceMainInitilizationFirstTime window = new InterfaceMainInitilizationFirstTime(dbConnection, "Performing first-time initilization");
 			while (!window.finished()) {
 				sleep(100);
 			}
+			System.out.println("First-time initialization complete");
 		}
 		// else, run standard initialization
 		else
 		{
+			System.out.println("Program has been run before, performing standard initialization");
 			InterfaceMainInitialization window = new InterfaceMainInitialization(airSensors, airSensorDisplayNames, windSensors, dbConnection);
 			while (!window.finished()) {
 				sleep(100);
 			}
+			System.out.println("Standard initialization complete");
 		}	
 			
 		// run the main interface
@@ -55,6 +59,7 @@ public class Main
 		{
 			public void run() 
 			{
+				System.out.println("Starting main interface");
 				try 
 				{
 					Interface window = new Interface(dbConnection, airSensors, airSensorDisplayNames);
@@ -68,9 +73,11 @@ public class Main
 		sleep(MIN_TIME_BETWEEN_REFRESH);
 		
 		// start data update threads
+		System.out.println("Starting air sensor update thread");
 		AirUpdateThread airUpdateThread = new AirUpdateThread(airSensors, dbConnection);
 		airUpdateThread.start();
 
+		System.out.println("Starting airport wind sensor update thread");
 		WindUpdateThread windUpdateThread = new WindUpdateThread(windSensors, dbConnection);
 		windUpdateThread.start();
 	}
