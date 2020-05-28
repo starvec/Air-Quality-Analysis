@@ -114,7 +114,7 @@ public class DBAction
 		
 	}	
 	
-	public static void executeUpdateUnprotected(Connection connection, String queryStr) throws SQLException
+	public static void executeUpdateUncaught(Connection connection, String queryStr) throws SQLException
 	{
 		Statement statement = connection.createStatement();
 		statement.setQueryTimeout(10);  // set timeout to 10 sec.
