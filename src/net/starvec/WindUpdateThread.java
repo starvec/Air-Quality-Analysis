@@ -1,20 +1,26 @@
 package net.starvec;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.TimeZone;
 
+import org.apache.commons.io.IOUtils;
+
 public class WindUpdateThread extends Thread
 {
-	private static final int MIN_TIME_BETWEEN_REFRESH = 1000;
-	private static final int DESIRED_LOOP_PERIOD = 20000;
+	private static final int DESIRED_LOOP_PERIOD = 300000;
 	
-	private ArrayList<PurpleAir> sensors;
+	private ArrayList<WindSensor> sensors;
 	Connection dbConnection;
 	
-	public WindUpdateThread(ArrayList<PurpleAir> sensors, Connection dbConnection)
+	public WindUpdateThread(ArrayList<WindSensor> sensors, Connection dbConnection)
 	{
 		this.sensors = sensors;
 		this.dbConnection = dbConnection;
@@ -24,75 +30,188 @@ public class WindUpdateThread extends Thread
 	{
 		while (true)
 		{
-			// for every sensor
+			String idString = "";
+			
 			for (int i = 0; i < sensors.size(); i++)
 			{
-				// refresh the data, handle that refreshed data, and sleep
-				sensors.get(i).refreshSensorData();
-				handleSensorRefresh(i);
-				sleep(MIN_TIME_BETWEEN_REFRESH);
+				if (i < sensors.size() - 1)
+					idString += sensors.get(i).getAirportId() + ",";
+				else
+					idString += sensors.get(i).getAirportId();
 			}
 			
-			sleep(Math.max((DESIRED_LOOP_PERIOD - sensors.size()*MIN_TIME_BETWEEN_REFRESH), MIN_TIME_BETWEEN_REFRESH));
+			String url = "https://www.aviationweather.gov/metar/data?ids=" + idString + "&format=raw&hours=0&taf=off&layout=off";
+			String webData = "";
+			try {
+				webData = IOUtils.toString(new URL(url), Charset.forName("UTF-8"));
+			} catch (MalformedURLException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+			// for every sensor
+			for (int i = 0; i < sensors.size(); i++) 
+			{
+				System.out.println("Attempting to get new data for airport wind sensor " + sensors.get(i).getAirportId());
+				handleSensorRefresh(i, webData);
+			}
+			
+			sleep(DESIRED_LOOP_PERIOD);
 		}
 	}
 	
-	private void handleSensorRefresh(int i)
+	private void handleSensorRefresh(int i, String webData)
 	{
-		PurpleAir sensor = sensors.get(i);
-		LocalDateTime readingTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(sensor.getLastPrimaryReadingTime()*1000), 
-                TimeZone.getDefault().toZoneId());
+		WindSensor sensor = sensors.get(i);
 		
-		// insert sensor A data
-		DBAction.executeUpdate(dbConnection,
-				"INSERT INTO air_reading " +
-					"VALUES (" +
-						sensor.getPrimaryId() + ", " +
-						sensor.getPrimaryP0_3Count() + ", " +
-						sensor.getPrimaryP0_5Count() + ", " +
-						sensor.getPrimaryP1Count() + ", " +
-						sensor.getPrimaryP2_5Count() + ", " +
-						sensor.getPrimaryP5Count() + ", " +
-						sensor.getPrimaryP10Count() + ", " +
-						sensor.getPrimaryPm1Value() + ", " +
-						sensor.getPrimaryPm2_5Value() + ", " +
-						sensor.getPrimaryPm10Value() + ", " +
-						sensor.getTemperatureF() + ", " + 
-						sensor.getHumidity() + ", " + 
-						sensor.getPressure() + ", " +
-						"\"" + readingTime + "\"" +
-					");"
-				);
+		int metarStart = webData.indexOf("<code>" + sensor.getAirportId());
+		String webDataSub = webData.substring(metarStart);
+		int metarEnd = webDataSub.indexOf("</code>");
+		String metar = webDataSub.substring(0, metarEnd);
 		
-		// insert sensor B data
-		DBAction.executeUpdate(dbConnection,
-				"INSERT INTO air_reading (" +
-						"ar_sensor_id, " +
-						"ar_p0_3_count, " +
-						"ar_p0_5_count, " +
-						"ar_p1_count, " +
-						"ar_p2_5_count, " +
-						"ar_p5_count, " +
-						"ar_p10_count, " +
-						"ar_pm1_value, " +
-						"ar_pm2_5_value, " +
-						"ar_pm10_value, " +
-						"ar_datetime" +
-					") " +
-					"VALUES (" +
-						sensor.getSecondaryId() + ", " +
-						sensor.getSecondaryP0_3Count() + ", " +
-						sensor.getSecondaryP0_5Count() + ", " +
-						sensor.getSecondaryP1Count() + ", " +
-						sensor.getSecondaryP2_5Count() + ", " +
-						sensor.getSecondaryP5Count() + ", " +
-						sensor.getSecondaryP10Count() + ", " +
-						sensor.getSecondaryPm1Value() + ", " +
-						sensor.getSecondaryPm2_5Value() + ", " +
-						sensor.getSecondaryPm10Value() + ", " +
-						"\"" + readingTime + "\"" +
-					");"
-				);
+		sensor.setMetar(metar);
+		sensor.parseMetar();
+		
+		System.out.println("Wind variable: " + sensor.bearingIsVariable());
+		System.out.println("Wind gusty: " + sensor.windHasGusts());
+		
+		// wind is variable and has gusts
+		if (sensor.bearingIsVariable() && sensor.windHasGusts())
+		{
+			try
+			{
+				DBAction.executeUpdateUncaught(dbConnection,
+						"INSERT INTO wind_reading (" +
+								"wr_airport_id, " +
+								"wr_variable, " +
+								"wr_gusty, " +
+								"wr_velocity, " +
+								"wr_velocity_gust, " +
+								"wr_datetime" +
+							") " +
+							"VALUES (" +
+								"\"" + sensor.getAirportId() + "\", " +
+								"\"" + sensor.bearingIsVariable() + "\", " +
+								"\"" + sensor.windHasGusts() + "\", " +
+								sensor.getWindVelocity() + ", " +
+								sensor.getWindGustVelocity() + ", " +
+								"\"" + sensor.getReadingTime() + "\"" + 
+							");"
+						);
+				
+				System.out.println("New data recorded");
+			} 
+			catch (SQLException e) 
+			{
+				if (e.toString().contains("[SQLITE_CONSTRAINT_PRIMARYKEY]"))
+					System.out.println("No new data available");
+				else
+					e.printStackTrace();
+			}
+		}
+		// wind is not variable but has gusts
+		else if (!sensor.bearingIsVariable() && sensor.windHasGusts())
+		{
+			try 
+			{
+				DBAction.executeUpdateUncaught(dbConnection,
+						"INSERT INTO wind_reading (" +
+								"wr_airport_id, " +
+								"wr_variable, " +
+								"wr_gusty, " +
+								"wr_bearing, " + 
+								"wr_velocity, " +
+								"wr_velocity_gust, " +
+								"wr_datetime" +
+							") " +
+							"VALUES (" +
+								"\"" + sensor.getAirportId() + "\", " +
+								"\"" + sensor.bearingIsVariable() + "\", " +
+								"\"" + sensor.windHasGusts() + "\", " +
+								sensor.getWindBearing() + ", " +
+								sensor.getWindVelocity() + ", " +
+								sensor.getWindGustVelocity() + ", " +
+								"\"" + sensor.getReadingTime() + "\"" +
+							");"
+						);
+				
+				System.out.println("New data recorded");
+			} 
+			catch (SQLException e) 
+			{
+				if (e.toString().contains("[SQLITE_CONSTRAINT_PRIMARYKEY]"))
+					System.out.println("No new data available");
+				else
+					e.printStackTrace();
+			}
+		}
+		// wind is variable but does not have gusts
+		else if (sensor.bearingIsVariable() && !sensor.windHasGusts())
+		{
+			try 
+			{
+				DBAction.executeUpdateUncaught(dbConnection,
+						"INSERT INTO wind_reading (" +
+								"wr_airport_id, " +
+								"wr_variable, " +
+								"wr_gusty, " +
+								"wr_velocity, " +
+								"wr_datetime" +
+							") " +
+							"VALUES (" +
+								"\"" + sensor.getAirportId() + "\", " +
+								"\"" + sensor.bearingIsVariable() + "\", " +
+								"\"" + sensor.windHasGusts() + "\", " +
+								sensor.getWindVelocity() + ", " +
+								"\"" + sensor.getReadingTime() + "\"" +
+							");"
+						);
+				
+				System.out.println("New data recorded");
+			} 
+			catch (SQLException e) 
+			{
+				if (e.toString().contains("[SQLITE_CONSTRAINT_PRIMARYKEY]"))
+					System.out.println("No new data available");
+				else
+					e.printStackTrace();
+			}
+		}
+		// wind is not variable and does not have gusts
+		else if (!sensor.bearingIsVariable() && !sensor.windHasGusts())
+		{
+			try 
+			{
+				DBAction.executeUpdateUncaught(dbConnection,
+						"INSERT INTO wind_reading (" +
+								"wr_airport_id, " +
+								"wr_variable, " +
+								"wr_gusty, " +
+								"wr_bearing, " + 
+								"wr_velocity, " +
+								"wr_datetime" +
+							") " +
+							"VALUES (" +
+								"\"" + sensor.getAirportId() + "\", " +
+								"\"" + sensor.bearingIsVariable() + "\", " +
+								"\"" + sensor.windHasGusts() + "\", " +
+								sensor.getWindBearing() + ", " +
+								sensor.getWindVelocity() + ", " +
+								"\"" + sensor.getReadingTime() + "\"" +
+							");"
+						);
+				
+				System.out.println("New data recorded");
+			} 
+			catch (SQLException e) 
+			{
+				if (e.toString().contains("[SQLITE_CONSTRAINT_PRIMARYKEY]"))
+					System.out.println("No new data available");
+				else
+					e.printStackTrace();
+			}
+		}
 	}
 	
 	private void sleep(int millis)

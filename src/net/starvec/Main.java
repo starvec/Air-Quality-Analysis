@@ -18,8 +18,9 @@ public class Main
 {
 	private static final int MIN_TIME_BETWEEN_REFRESH = 1000;
 	
-	static ArrayList<PurpleAir> sensors = new ArrayList<>();
-	static ArrayList<String> sensorDisplayNames = new ArrayList<>();
+	static ArrayList<PurpleAir> airSensors = new ArrayList<>();
+	static ArrayList<String> airSensorDisplayNames = new ArrayList<>();
+	static ArrayList<WindSensor> windSensors = new ArrayList<>();
 	static Config config;
 	
 	static Connection dbConnection;
@@ -43,11 +44,10 @@ public class Main
 		// else, run standard initialization
 		else
 		{
-			InterfaceMainInitialization window = new InterfaceMainInitialization(sensors, sensorDisplayNames, dbConnection);
+			InterfaceMainInitialization window = new InterfaceMainInitialization(airSensors, airSensorDisplayNames, windSensors, dbConnection);
 			while (!window.finished()) {
 				sleep(100);
 			}
-			System.out.println("Program has been run before");
 		}	
 			
 		// run the main interface
@@ -57,7 +57,7 @@ public class Main
 			{
 				try 
 				{
-					Interface window = new Interface(dbConnection, sensors, sensorDisplayNames);
+					Interface window = new Interface(dbConnection, airSensors, airSensorDisplayNames);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -68,8 +68,11 @@ public class Main
 		sleep(MIN_TIME_BETWEEN_REFRESH);
 		
 		// start data update threads
-		AirUpdateThread airUpdateThread = new AirUpdateThread(sensors, dbConnection);
-		airUpdateThread.run();
+		AirUpdateThread airUpdateThread = new AirUpdateThread(airSensors, dbConnection);
+		airUpdateThread.start();
+
+		WindUpdateThread windUpdateThread = new WindUpdateThread(windSensors, dbConnection);
+		windUpdateThread.start();
 	}
 	
 	private static void sleep(int millis)

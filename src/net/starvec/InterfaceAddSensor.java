@@ -29,6 +29,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class InterfaceAddSensor 
 {
@@ -37,14 +39,17 @@ public class InterfaceAddSensor
 	private JTextField textFieldSensorID;
 	private JTextField textFieldSensorName;
 	private JButton btnSearch;
-	private JList<String> listSensor;
+	private static JList<String> listSensor;
 
 	private static ArrayList<Sensor> sensorIdAndNames = new ArrayList<>();
 	private static ArrayList<PurpleAir> sensors;
 	private static ArrayList<String> sensorDisplayNames;
+	private static String nearestAirportId;
 
 	private static Connection dbConnection;
 	private static Component parentComponent;
+	
+	private static boolean finished;
 
 	/**
 	 * Launch the application.
@@ -76,6 +81,8 @@ public class InterfaceAddSensor
 		this.parentComponent = parentComponent;
 		this.sensors = sensors;
 		this.sensorDisplayNames = sensorDisplayNames;
+		
+		finished = false;
 		
 		initialize();
 		frame.setVisible(true);
@@ -117,7 +124,15 @@ public class InterfaceAddSensor
 		frame.setLocationRelativeTo(parentComponent);
 		SpringLayout springLayout = new SpringLayout();
 		frame.getContentPane().setLayout(springLayout);
-		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		frame.addWindowListener(new WindowAdapter() {
+	        @Override
+	        public void windowClosing(WindowEvent event) 
+	        {
+	        	finished = true;
+	        	frame.dispose();
+	        }
+	    });
 
 		// sensor id label
 		JLabel lblSensorID = new JLabel("Sensor ID");
@@ -146,8 +161,10 @@ public class InterfaceAddSensor
 
 		btnAddSensor.addActionListener(new ActionListener() 
 		{
-			public void actionPerformed(ActionEvent e) {
+			public void actionPerformed(ActionEvent e) 
+			{
 				handleButtonAddSensor();
+				finished = true;
 			}
 		});
 
@@ -280,15 +297,16 @@ public class InterfaceAddSensor
 			textFieldSensorID.setText(Integer.toString(sensorIdAndNames.get(listSensor.getSelectedIndex()).getId()));
 			textFieldSensorName.setText(sensorIdAndNames.get(listSensor.getSelectedIndex()).getName());
 			
-			getNearestAirport(sensorIdAndNames.get(listSensor.getSelectedIndex()).getId());
+			nearestAirportId = getNearestAirport(sensorIdAndNames.get(listSensor.getSelectedIndex()).getId());
 		}
 	}
 
+	// handles when a user adds a new sensor to the tracked sensors
 	public static void handleNewSensor(int i, String friendlyName)
 	{
 		PurpleAir sensor = sensors.get(i);
 
-		// insert new sensor into database
+		// insert new air sensor into database
 		DBAction.executeUpdate(dbConnection, 
 				"INSERT INTO sensor (" +
 						"s_primary_sensor_id, " +
@@ -318,6 +336,21 @@ public class InterfaceAddSensor
 							"WHERE s_primary_sensor_id == " + sensor.getPrimaryId() + ";"
 					);
 		}
+		
+		nearestAirportId = getNearestAirport(sensorIdAndNames.get(listSensor.getSelectedIndex()).getId());
+		
+		// insert the closest airport into the database
+		DBAction.executeUpdate(dbConnection, 
+				"INSERT INTO airport " +
+				"SELECT * " +
+				"FROM airport_master am " +
+				"WHERE am.am_airport_id = \"" + nearestAirportId + "\";"
+				);
+	}
+	
+	// returns false if 
+	public static boolean isFinished() {
+		return finished;
 	}
 
 	// a case insensitive version of String.contains
@@ -349,7 +382,7 @@ public class InterfaceAddSensor
 		}
 	}
 	
-	private static void getNearestAirport(int sensorId)
+	private static String getNearestAirport(int sensorId)
 	{
 		ResultSet sensorResult = DBAction.executeQuery(dbConnection, 
 				"SELECT sm.sm_latitude AS lat, sm.sm_longitude AS lon " +
@@ -361,7 +394,6 @@ public class InterfaceAddSensor
 				"SELECT am.am_airport_id AS id, am.am_latitude AS lat, am.am_longitude AS lon " +
 					"FROM airport_master am;"
 				);
-				
 		
 		try
 		{
@@ -383,14 +415,15 @@ public class InterfaceAddSensor
 						
 				}
 				
-				System.out.println(minDistance);
-				System.out.println(minDistanceId);
+				return minDistanceId;
 			}
 		}
 		catch(SQLException sqle)
 		{
 			System.err.println(sqle.getMessage());
 		}
+		
+		return "ERROR";
 	}
 
 	private static class Sensor

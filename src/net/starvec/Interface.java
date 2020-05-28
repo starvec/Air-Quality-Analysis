@@ -31,6 +31,7 @@ public class Interface {
 
 	private JFrame frmMercedCollege;
 	private SpringLayout springLayout;
+	private JList<String> listSensors = new JList<String>();
 	
 	JTabbedPane tabbedPaneGraph;
 	
@@ -137,19 +138,29 @@ public class Interface {
 		{
 			public void actionPerformed(ActionEvent e) 
 			{
-				EventQueue.invokeLater(new Runnable() 
-				{
-					public void run() 
-					{
-						try 
-						{
-							UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-							InterfaceAddSensor window = new InterfaceAddSensor(sensors, sensorDisplayNames, dbConnection, frmMercedCollege);
-						} catch (Exception e) {
-							e.printStackTrace();
+				
+				InterfaceAddSensor window = new InterfaceAddSensor(sensors, sensorDisplayNames, dbConnection, frmMercedCollege);
+
+				// thread to watch for when the add sensor interface finishes and update the sensor list when it does
+				new Thread(new Runnable() {
+				    public void run() 
+				    {
+				    	while (!window.isFinished()) {
+							sleep(100);
 						}
-					}
-				});
+				    	
+				    	listSensors.setModel(new AbstractListModel<String>() 
+						{
+							public int getSize() {
+								return sensorDisplayNames.size();
+							}
+							
+							public String getElementAt(int index) {
+								return sensorDisplayNames.get(index);
+							}
+						});
+				    }
+				}).start();	
 			}
 		});
 		
@@ -159,7 +170,7 @@ public class Interface {
 		springLayout.putConstraint(SpringLayout.SOUTH, btnEditSensor, 0, SpringLayout.NORTH, scrollPaneSensors);
 		frmMercedCollege.getContentPane().add(btnEditSensor);
 		
-		JList<String> listSensors = new JList<String>();
+		
 		listSensors.setModel(new AbstractListModel<String>() 
 		{
 			public int getSize() {
@@ -234,5 +245,14 @@ public class Interface {
 		
 		//springLayout.putConstraint(SpringLayout.WEST, panelParticleMass, (int)((width - 256)/-2.0), SpringLayout.EAST, frmMercedCollege.getContentPane());
 		//springLayout.putConstraint(SpringLayout.SOUTH, panelParticleMass, (int)(height/-2.0), SpringLayout.SOUTH, frmMercedCollege.getContentPane());
+	}
+	
+	private static void sleep(int millis)
+	{
+		try {
+			Thread.sleep(millis);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 }

@@ -29,8 +29,9 @@ public class InterfaceMainInitialization
 	private JFrame frame;
 	private JProgressBar progressBar;
 	
-	private static ArrayList<PurpleAir> sensors;
-	private static ArrayList<String> sensorDisplayNames;
+	private static ArrayList<PurpleAir> airSensors;
+	private static ArrayList<String> airSensorDisplayNames;
+	private static ArrayList<WindSensor> windSensors;
 	private Connection dbConnection;
 	private boolean finished;
 
@@ -40,9 +41,10 @@ public class InterfaceMainInitialization
 			public void run() {
 				try 
 				{
-					sensors = new ArrayList<>();
-					sensorDisplayNames = new ArrayList<>();
-					InterfaceMainInitialization window = new InterfaceMainInitialization(sensors, sensorDisplayNames, DBAction.openDatabaseConnection("data.db"));
+					airSensors = new ArrayList<>();
+					airSensorDisplayNames = new ArrayList<>();
+					windSensors = new ArrayList<>();
+					InterfaceMainInitialization window = new InterfaceMainInitialization(airSensors, airSensorDisplayNames, windSensors, DBAction.openDatabaseConnection("data.db"));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -51,10 +53,11 @@ public class InterfaceMainInitialization
 	}
 
 	//
-	public InterfaceMainInitialization(ArrayList<PurpleAir> sensors, ArrayList<String> sensorDisplayNames, Connection dbConnection) 
+	public InterfaceMainInitialization(ArrayList<PurpleAir> sensors, ArrayList<String> sensorDisplayNames, ArrayList<WindSensor> windSensors, Connection dbConnection) 
 	{
-		this.sensors = sensors;
-		this.sensorDisplayNames = sensorDisplayNames;
+		this.airSensors = sensors;
+		this.airSensorDisplayNames = sensorDisplayNames;
+		this.windSensors = windSensors;
 		this.dbConnection = dbConnection;
 		finished = false;
 		
@@ -163,7 +166,7 @@ public class InterfaceMainInitialization
 	    	
 	    	progressBar.setString("Querying Database");
 	    	
-	    	// query the database to count the number of previously monitored sensors
+	    	// query the database to count the number of previously monitored air sensors
 			ResultSet result = DBAction.executeQuery(dbConnection, 
 					"SELECT COUNT(s.s_primary_sensor_id) AS count " +
 					"FROM sensor s;"
@@ -172,7 +175,24 @@ public class InterfaceMainInitialization
 			{
 				if (result.next())
 				{
-					sensorCount = result.getInt("count");
+					sensorCount += result.getInt("count");
+				}
+			}
+			catch(SQLException sqle)
+			{
+				System.err.println(sqle.getMessage());
+			}
+			
+			// query the database to count the number of previously monitored airport wind sensors
+			result = DBAction.executeQuery(dbConnection, 
+					"SELECT COUNT(a.a_airport_id) AS count " +
+					"FROM airport a;"
+					);
+			try
+			{
+				if (result.next())
+				{
+					sensorCount += result.getInt("count");
 				}
 			}
 			catch(SQLException sqle)
@@ -180,7 +200,7 @@ public class InterfaceMainInitialization
 				System.err.println(sqle.getMessage());
 			}
 	    	
-	    	// query the database to get all previously monitored sensors
+	    	// query the database to get all previously monitored air sensors
 			result = DBAction.executeQuery(dbConnection, 
 					"SELECT s.s_primary_sensor_id AS id, s.s_sensor_name AS name, s.s_sensor_name_friendly AS name_friendly " +
 					"FROM sensor s " +
@@ -190,19 +210,43 @@ public class InterfaceMainInitialization
 			{
 				while(result.next())
 				{
-					sensors.add(new PurpleAir(result.getInt("id")));
+					airSensors.add(new PurpleAir(result.getInt("id")));
 					
 					if (result.getString("name_friendly") == null)
 					{
 						progressBar.setString("Initializing " + result.getString("name"));
-						sensorDisplayNames.add(result.getString("name"));
+						airSensorDisplayNames.add(result.getString("name"));
 					}
 					else
 					{
 						progressBar.setString("Initializing " + result.getString("name_friendly"));
-						sensorDisplayNames.add(result.getString("name_friendly"));
+						airSensorDisplayNames.add(result.getString("name_friendly"));
 					}	
 					
+					progressBar.setValue((int)((float)100/(sensorCount) * currentSensor));
+					currentSensor++;
+					
+					sleep(MIN_TIME_BETWEEN_REFRESH);
+				}
+			}
+			catch(SQLException sqle)
+			{
+				System.err.println(sqle.getMessage());
+			}
+			
+			// query the database to get all previously monitored airport wind sensors
+			result = DBAction.executeQuery(dbConnection, 
+					"SELECT a.a_airport_id AS id, a.a_airport_name AS name " +
+					"FROM airport a " +
+					"ORDER BY a.a_airport_name;"
+					);
+			try
+			{
+				while(result.next())
+				{
+					windSensors.add(new WindSensor(result.getString("id"), dbConnection));
+
+					progressBar.setString("Initializing " + result.getString("name"));
 					progressBar.setValue((int)((float)100/(sensorCount) * currentSensor));
 					currentSensor++;
 					
