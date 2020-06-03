@@ -17,6 +17,7 @@ public class WindTest
 		
 		Instant instant = Instant.now();
 		
+		/*
 		String url2 = "https://ourairports.com/data/airports.csv";
 		String webData2 = "";
 		try {
@@ -28,8 +29,9 @@ public class WindTest
 		}
 		
 		System.out.println(webData2);
+		*/
 		
-		String url = "https://www.aviationweather.gov/metar/data?ids=AYPY&format=raw&hours=0&taf=off&layout=off";
+		String url = "https://www.aviationweather.gov/metar/data?ids=AYPY,KMER,ABCD,KMCE&format=raw&hours=0&taf=off&layout=off";
 		String webData = "";
 		try {
 			webData = IOUtils.toString(new URL(url), Charset.forName("UTF-8"));
@@ -38,6 +40,8 @@ public class WindTest
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		System.out.println(webData);
 		
 		String windString = "";
 		int i = webData.indexOf("KT");

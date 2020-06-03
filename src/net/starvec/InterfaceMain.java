@@ -27,13 +27,14 @@ import java.awt.Toolkit;
 import javax.swing.JTabbedPane;
 import javax.swing.JSplitPane;
 
-public class Interface {
+public class InterfaceMain {
 
 	private JFrame frmMercedCollege;
 	private SpringLayout springLayout;
 	private JList<String> listSensors = new JList<String>();
 	
 	JTabbedPane tabbedPaneGraph;
+	JPanel panelParticleCountGraph;
 	
 	Connection dbConnection;
 	
@@ -58,7 +59,7 @@ public class Interface {
 			public void run() 
 			{
 				try {
-					Interface window = new Interface(dbConnection, sensors, sensorDisplayNames);
+					InterfaceMain window = new InterfaceMain(dbConnection, sensors, sensorDisplayNames);
 				} 
 				catch (Exception e) {
 					e.printStackTrace();
@@ -70,13 +71,17 @@ public class Interface {
 	/**
 	 * Create the application.
 	 */
-	public Interface(Connection dbConnection, ArrayList<PurpleAir> sensors, ArrayList<String> sensorDisplayNames) 
+	public InterfaceMain(Connection dbConnection, ArrayList<PurpleAir> sensors, ArrayList<String> sensorDisplayNames) 
 	{
 		this.dbConnection = dbConnection;
 		this.sensors = sensors;
 		this.sensorDisplayNames = sensorDisplayNames;
 		initialize(sensors, sensorDisplayNames);
+		frmMercedCollege.setEnabled(false);
+		System.out.println(panelParticleCountGraph.getSize());
 		frmMercedCollege.setVisible(true);
+
+		
 	}
 
 	private void initialize(ArrayList<PurpleAir> sensors, ArrayList<String> sensorDisplayNames) 
@@ -89,16 +94,16 @@ public class Interface {
 		}
 		
 		List<Image> icons = new ArrayList<Image>();
-		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo16.png")));
-		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo20.png")));
-		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo24.png")));
-		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo32.png")));
-		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo40.png")));
-		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo48.png")));
-		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo60.png")));
-		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo64.png")));
-		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo72.png")));
-		icons.add(Toolkit.getDefaultToolkit().getImage(Interface.class.getResource("/net/starvec/mclogo128.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(InterfaceMain.class.getResource("/net/starvec/mclogo16.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(InterfaceMain.class.getResource("/net/starvec/mclogo20.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(InterfaceMain.class.getResource("/net/starvec/mclogo24.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(InterfaceMain.class.getResource("/net/starvec/mclogo32.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(InterfaceMain.class.getResource("/net/starvec/mclogo40.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(InterfaceMain.class.getResource("/net/starvec/mclogo48.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(InterfaceMain.class.getResource("/net/starvec/mclogo60.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(InterfaceMain.class.getResource("/net/starvec/mclogo64.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(InterfaceMain.class.getResource("/net/starvec/mclogo72.png")));
+		icons.add(Toolkit.getDefaultToolkit().getImage(InterfaceMain.class.getResource("/net/starvec/mclogo128.png")));
 		
 		frmMercedCollege = new JFrame();
 		frmMercedCollege.setTitle("Merced College - Air Quality Monitor");
@@ -200,7 +205,7 @@ public class Interface {
 		springLayout.putConstraint(SpringLayout.EAST, tabbedPaneGraph, 0, SpringLayout.EAST, frmMercedCollege.getContentPane());
 		frmMercedCollege.getContentPane().add(tabbedPaneGraph);
 		
-		JPanel panelParticleCountGraph = new JPanel();
+		panelParticleCountGraph = new JPanel();
 		panelParticleCountGraph.setBorder(null);
 		tabbedPaneGraph.addTab("Particle Count", null, panelParticleCountGraph, null);
 		tabbedPaneGraph.setEnabledAt(0, true);
@@ -237,8 +242,11 @@ public class Interface {
 	
 	public void handleWindowResize()
 	{
-		int width = frmMercedCollege.getSize().width;
-        int height = frmMercedCollege.getSize().height;
+		int frameWidth = frmMercedCollege.getSize().width;
+        int frameHeight = frmMercedCollege.getSize().height;
+        
+        int chartPanelWidth = panelParticleCountGraph.getSize().width;
+        int chartPanelHeight = panelParticleCountGraph.getSize().height;
         
         //springLayout.putConstraint(SpringLayout.SOUTH, panelParticleCount, (int)(height/-2.0), SpringLayout.SOUTH, frmMercedCollege.getContentPane());
 		//springLayout.putConstraint(SpringLayout.EAST, panelParticleCount, (int)((width - 256)/-2.0), SpringLayout.EAST, frmMercedCollege.getContentPane());

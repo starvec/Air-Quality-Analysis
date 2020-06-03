@@ -99,12 +99,12 @@ public class AirUpdateThread extends Thread
 						");"
 					);
 			
-			System.out.println("New data recorded");
+			System.out.println("New air quality data recorded");
 		} 
 		catch (SQLException e) 
 		{
 			if (e.toString().contains("[SQLITE_CONSTRAINT_PRIMARYKEY]"))
-				System.out.println("No new data available");
+				System.out.println("No new air quality data available");
 			else
 				e.printStackTrace();
 		}

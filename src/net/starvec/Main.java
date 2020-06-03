@@ -62,7 +62,7 @@ public class Main
 				System.out.println("Starting main interface");
 				try 
 				{
-					Interface window = new Interface(dbConnection, airSensors, airSensorDisplayNames);
+					InterfaceMain window = new InterfaceMain(dbConnection, airSensors, airSensorDisplayNames);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
