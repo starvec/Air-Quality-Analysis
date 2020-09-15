@@ -73,8 +73,8 @@ public class WindUpdateThread extends Thread
 		sensor.setMetar(metar);
 		sensor.parseMetar();
 		
-		System.out.println("Wind variable: " + sensor.bearingIsVariable());
-		System.out.println("Wind gusty: " + sensor.windHasGusts());
+		//System.out.println("Wind variable: " + sensor.bearingIsVariable());
+		//System.out.println("Wind gusty: " + sensor.windHasGusts());
 		
 		// wind is variable and has gusts
 		if (sensor.bearingIsVariable() && sensor.windHasGusts())

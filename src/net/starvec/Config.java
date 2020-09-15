@@ -45,7 +45,7 @@ public class Config
 			if (config.get(i).property.equals(property)) 
 			{
 				config.get(i).value = value;
-				DBAction.executeQuery(dbConnection, "UPDATE config SET c_value = '" + value + "' WHERE c_property = '" + property + "';");
+				DBAction.executeUpdate(dbConnection, "UPDATE config SET c_value = '" + value + "' WHERE c_property = '" + property + "';");
 				return true;
 			}
 		}

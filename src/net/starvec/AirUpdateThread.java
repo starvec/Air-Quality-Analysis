@@ -29,7 +29,7 @@ public class AirUpdateThread extends Thread
 			for (int i = 0; i < sensors.size(); i++)
 			{
 				// refresh the data, handle that refreshed data, and sleep
-				System.out.println("Attempting to get new data for air sensor " + sensors.get(i).getPrimaryName() + "(" + sensors.get(i).getPrimaryId() + ")");
+				System.out.print("Attempting to get new data for air sensor " + sensors.get(i).getPrimaryName() + "(" + sensors.get(i).getPrimaryId() + "): ");
 				sensors.get(i).refreshSensorData();
 				handleSensorRefresh(i);
 				sleep(MIN_TIME_BETWEEN_REFRESH);
@@ -99,12 +99,12 @@ public class AirUpdateThread extends Thread
 						");"
 					);
 			
-			System.out.println("New air quality data recorded");
+			System.out.println("New data recorded");
 		} 
 		catch (SQLException e) 
 		{
 			if (e.toString().contains("[SQLITE_CONSTRAINT_PRIMARYKEY]"))
-				System.out.println("No new air quality data available");
+				System.out.println("No new data available");
 			else
 				e.printStackTrace();
 		}

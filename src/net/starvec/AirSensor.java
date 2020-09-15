@@ -35,7 +35,7 @@ public class AirSensor
 		p1Count = Float.parseFloat(parseDataFromString(dataString, "p_1_0_um"));
 		p2_5Count = Float.parseFloat(parseDataFromString(dataString, "p_2_5_um"));
 		p10Count = Float.parseFloat(parseDataFromString(dataString, "p_5_0_um"));
-		pm1Value = Float.parseFloat(parseDataFromString(dataString, "pm10_0_atm"));
+		pm1Value = Float.parseFloat(parseDataFromString(dataString, "pm1_0_atm"));
 		pm2_5Value = Float.parseFloat(parseDataFromString(dataString, "pm2_5_atm"));
 		pm10Value = Float.parseFloat(parseDataFromString(dataString, "pm10_0_atm"));
 	}

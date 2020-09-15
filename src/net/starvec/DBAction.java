@@ -69,7 +69,7 @@ public class DBAction
 			System.err.println(e.getMessage());
 			System.err.println("Error on -> " + queryStr);
 			ResultSet rs = null;
-			return rs ;
+			return rs;
 		}
 	}
 	

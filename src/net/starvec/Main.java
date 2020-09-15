@@ -41,6 +41,7 @@ public class Main
 			while (!window.finished()) {
 				sleep(100);
 			}
+			config.updateValue("run_before", "1");
 			System.out.println("First-time initialization complete");
 		}
 		// else, run standard initialization
@@ -62,7 +63,7 @@ public class Main
 				System.out.println("Starting main interface");
 				try 
 				{
-					InterfaceMain window = new InterfaceMain(dbConnection, airSensors, airSensorDisplayNames);
+					InterfaceMain window = new InterfaceMain(dbConnection, config, airSensors, windSensors, airSensorDisplayNames);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

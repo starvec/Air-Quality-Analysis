@@ -42,8 +42,9 @@ public class InterfaceAddSensor
 	private static JList<String> listSensor;
 
 	private static ArrayList<Sensor> sensorIdAndNames = new ArrayList<>();
-	private static ArrayList<PurpleAir> sensors;
+	private static ArrayList<PurpleAir> airSensors;
 	private static ArrayList<String> sensorDisplayNames;
+	private static ArrayList<WindSensor> windSensors;
 	private static String nearestAirportId;
 
 	private static Connection dbConnection;
@@ -62,9 +63,9 @@ public class InterfaceAddSensor
 			public void run() {
 				try 
 				{
-					sensors = new ArrayList<>();
+					airSensors = new ArrayList<>();
 					sensorDisplayNames = new ArrayList<>();
-					InterfaceAddSensor window = new InterfaceAddSensor(sensors, sensorDisplayNames, dbConnection, null);
+					InterfaceAddSensor window = new InterfaceAddSensor(airSensors, sensorDisplayNames, windSensors, dbConnection, null);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -75,11 +76,12 @@ public class InterfaceAddSensor
 	/**
 	 * Create the application.
 	 */
-	public InterfaceAddSensor(ArrayList<PurpleAir> sensors, ArrayList<String> sensorDisplayNames, Connection dbConnection, Component parentComponent) 
+	public InterfaceAddSensor(ArrayList<PurpleAir> airSensors, ArrayList<String> sensorDisplayNames, ArrayList<WindSensor> windSensors, Connection dbConnection, Component parentComponent) 
 	{
 		this.dbConnection = dbConnection;
 		this.parentComponent = parentComponent;
-		this.sensors = sensors;
+		this.airSensors = airSensors;
+		this.windSensors = windSensors;
 		this.sensorDisplayNames = sensorDisplayNames;
 		
 		finished = false;
@@ -253,13 +255,14 @@ public class InterfaceAddSensor
 	private void handleButtonAddSensor()
 	{
 		int sensorID = Integer.parseInt(textFieldSensorID.getText());
-		int sensorIndex = sensors.size();
+		int sensorIndex = airSensors.size();
 
-		sensors.add(new PurpleAir(sensorID));
+		airSensors.add(new PurpleAir(sensorID));
+		windSensors.add(new WindSensor(nearestAirportId, dbConnection));
 
 		if (textFieldSensorName.getText().equals(""))
 		{
-			sensorDisplayNames.add(sensors.get(sensorIndex).getPrimaryName());
+			sensorDisplayNames.add(airSensors.get(sensorIndex).getPrimaryName());
 			handleNewSensor(sensorIndex, null);
 		}
 		else
@@ -304,7 +307,10 @@ public class InterfaceAddSensor
 	// handles when a user adds a new sensor to the tracked sensors
 	public static void handleNewSensor(int i, String friendlyName)
 	{
-		PurpleAir sensor = sensors.get(i);
+		PurpleAir sensor = airSensors.get(i);
+		
+		// find the nearest airport to the selected air sensor
+		nearestAirportId = getNearestAirport(sensorIdAndNames.get(listSensor.getSelectedIndex()).getId());
 
 		// insert new air sensor into database
 		DBAction.executeUpdate(dbConnection, 
@@ -316,6 +322,7 @@ public class InterfaceAddSensor
 						"s_latitude, " + 
 						"s_longitude, " +
 						"s_location_type " +
+						"s_airport_id" +
 						") " +
 						"VALUES (" +
 						sensor.getPrimaryId() + ", " + 
@@ -324,7 +331,8 @@ public class InterfaceAddSensor
 						"\"" + sensor.getPrimarySensorType() + "+" + sensor.getSecondarySensorType() + "+" + sensor.getTertiarySensorType() + "\"," +
 						sensor.getLat() + ", " + 
 						sensor.getLon() + ", " + 
-						"\"" + sensor.getLocationType() + "\");"
+						"\"" + sensor.getLocationType() + 
+						"\"" + nearestAirportId + "\");"
 				);
 
 		// if a friendly name was provided, add it
@@ -337,9 +345,7 @@ public class InterfaceAddSensor
 					);
 		}
 		
-		nearestAirportId = getNearestAirport(sensorIdAndNames.get(listSensor.getSelectedIndex()).getId());
-		
-		// insert the closest airport into the database
+		// insert the nearest airport into the database
 		DBAction.executeUpdate(dbConnection, 
 				"INSERT INTO airport " +
 				"SELECT * " +

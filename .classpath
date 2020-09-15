@@ -8,5 +8,6 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="lib" path="D:/Nextcloud/Programming/Java/eclipse-workspace/Air-Quality-Analysis/commons-io-2.6.jar"/>
 	<classpathentry kind="lib" path="D:/Nextcloud/Programming/Java/eclipse-workspace/Air-Quality-Analysis/sqlite-jdbc-3.27.2.1.jar"/>
+	<classpathentry kind="lib" path="D:/Nextcloud/Programming/Java/eclipse-workspace/Air-Quality-Analysis/xchart-3.6.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
